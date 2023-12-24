@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:lista_de_tarefas/itens.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MyApp());
@@ -22,16 +25,41 @@ class MyApp extends StatelessWidget {
 }
 
 class HomePage extends StatefulWidget {
-  //HomePage({super.key});
-  final List<Item> itens;
+  const HomePage({super.key});
 
-  HomePage() : itens = [];
   @override
   HomePageState createState() => HomePageState();
 }
 
 class HomePageState extends State<HomePage> {
-  var controlar = TextEditingController();
+  List<Item> itens = [];
+  final controlar = TextEditingController();
+
+  void load() async {
+    final armazenar = await SharedPreferences.getInstance();
+    var data = armazenar.getString('data');
+
+    if (data != null) {
+      Iterable decoded = jsonDecode(data);
+      List<Item> resultado = decoded.map((e) => Item.fromJson(e)).toList();
+      setState(() {
+        itens = resultado;
+      });
+    }
+  }
+
+  void salvar() async {
+    final armazenar = await SharedPreferences.getInstance();
+    await armazenar.setString('data', jsonEncode(itens));
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    load();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,31 +75,48 @@ class HomePageState extends State<HomePage> {
       body: Column(
         children: [
           Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 TextFormField(
                   controller: controlar,
                   keyboardType: TextInputType.text,
-                  decoration: InputDecoration(labelText: 'Insira sua tarefa:'),
+                  decoration:
+                      const InputDecoration(labelText: 'Insira sua tarefa:'),
                 ),
               ],
             ),
           ),
           Expanded(
             child: ListView.builder(
-              itemCount: widget.itens.length,
+              itemCount: itens.length,
               itemBuilder: (BuildContext context, int index) {
-                final item = widget.itens[index];
-                return CheckboxListTile(
-                  title: Text(item.titulo),
+                final item = itens[index];
+                return Dismissible(
                   key: Key(item.titulo),
-                  value: item.concluido,
-                  onChanged: (value) {
-                    setState(() {
-                      item.concluido = value ?? false;
-                    });
+                  background: const Text(
+                    'Excluir',
+                    textAlign: TextAlign.right,
+                  ),
+                  direction: DismissDirection.endToStart,
+                  onDismissed: (direction) {
+                    if (direction == DismissDirection.endToStart) {
+                      setState(() {
+                        itens.removeAt(index);
+                        salvar();
+                      });
+                    }
                   },
+                  child: CheckboxListTile(
+                    title: Text(item.titulo),
+                    value: item.concluido,
+                    onChanged: (value) {
+                      setState(() {
+                        item.concluido = value ?? false;
+                        salvar();
+                      });
+                    },
+                  ),
                 );
               },
             ),
@@ -83,14 +128,15 @@ class HomePageState extends State<HomePage> {
         onPressed: () {
           setState(
             () {
-              widget.itens.add(
+              itens.add(
                 Item(titulo: controlar.text, concluido: false),
               );
+              salvar();
               controlar.clear();
             },
           );
         },
-        child: Icon(
+        child: const Icon(
           Icons.add,
           color: Colors.white,
         ),
