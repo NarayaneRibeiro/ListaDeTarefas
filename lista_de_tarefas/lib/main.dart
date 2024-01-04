@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: HomePage(),
+      home: const HomePage(),
     );
   }
 }
@@ -55,7 +55,6 @@ class HomePageState extends State<HomePage> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     load();
   }
@@ -126,11 +125,15 @@ class HomePageState extends State<HomePage> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.purple[900],
         onPressed: () {
+          final receber = controlar.text;
           setState(
             () {
-              itens.add(
-                Item(titulo: controlar.text, concluido: false),
-              );
+              //Verifica se o campo não está vazio para adicionar
+              if (receber.isNotEmpty) {
+                itens.add(
+                  Item(titulo: controlar.text, concluido: false),
+                );
+              }
               salvar();
               controlar.clear();
             },
